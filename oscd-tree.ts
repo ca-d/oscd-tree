@@ -14,7 +14,9 @@ import type { List } from '@material/mwc-list';
 import type { ListItem } from '@material/mwc-list/mwc-list-item';
 import type { SingleSelectedEvent } from '@material/mwc-list/mwc-list-foundation';
 
-export type Selection = { [name: string]: Selection };
+import { generateTemplates } from './generate-templates.js';
+
+export type TreeSelection = { [name: string]: TreeSelection };
 
 export type Path = string[];
 export interface Directory {
@@ -68,7 +70,7 @@ function samePath(a: Path, b?: Path): boolean {
 @customElement('oscd-tree')
 export class OscdTree extends LitElement {
   @property({ type: Object, reflect: true })
-  selection: Selection = {};
+  selection: TreeSelection = {};
 
   @property({ type: Boolean, reflect: true })
   multi = false;
@@ -84,7 +86,7 @@ export class OscdTree extends LitElement {
   }
 
   set paths(paths: Path[]) {
-    const selection: Selection = {};
+    const selection: TreeSelection = {};
     for (const path of paths) {
       let i = selection;
       for (const name of path) {
@@ -269,7 +271,7 @@ export class OscdTree extends LitElement {
           dir[path[path.length - 1]] = {};
           this.requestUpdate('selection');
         } else {
-          const selection: Selection = {};
+          const selection: TreeSelection = {};
           let dir = selection;
           for (const slug of path) {
             dir[slug] = {};
@@ -398,31 +400,93 @@ export class OscdTree extends LitElement {
     )}${this.renderExpandColumn(rows)}`;
   }
 
+  private typeTemplates = new Map<string, Element>();
+
+  private saveSelection(): Element {
+    const templates = new DOMParser()
+      .parseFromString(
+        `<SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+                  <DataTypeTemplates></DataTypeTemplates>
+            </SCL>`,
+        'application/xml'
+      )
+      .querySelector('DataTypeTemplates')!;
+
+    const { enumTypes, daTypes, doTypes, lnTypes } = generateTemplates(
+      this.selection,
+      templates.ownerDocument
+    );
+
+    [...lnTypes, ...doTypes, ...daTypes, ...enumTypes].forEach(element =>
+      templates.append(element)
+    );
+
+    /*
+
+    const addedPaths = new Set<string>();
+    // const addedElements = new Map<string, Element>();
+
+    for (let i = this.depth - 1; i >= 0; i -= 1) {
+      const paths = this.getPaths(i);
+      for (const path of paths) {
+        let dir = data;
+        for (const slug of path.slice(0, -1)) dir = dir[slug].dependencies;
+        const element = dir[path[path.length - 1]];
+        if (element.tagName === 'Literal') continue;
+
+        if (element.typeKind === 'ENUMERATED') {
+          const enumType = templates.ownerDocument.createElement('EnumType');
+          const p = JSON.stringify(path);
+          enumType.setAttribute('id', element.name);
+
+          Array.from(Object.values(element.dependencies)).forEach(e => {
+            const { name, literalVal } = e as {
+              name: string;
+              literalVal: string;
+            };
+            const p = JSON.stringify([...path, name]);
+            const newType = templates.ownerDocument.createElement('EnumVal');
+            newType.setAttribute('ord', literalVal);
+            newType.textContent = name;
+            if (!addedPaths.has(p)) {
+              addedPaths.add(p);
+              enumType.append(newType);
+            }
+          });
+
+          if (!addedPaths.has(p)) {
+            addedPaths.add(p);
+            templates.append(enumType);
+          }
+          continue;
+        }
+
+        let tagName = 'ERROR';
+        if (element.tagName === 'Literal') tagName = 'EnumVal';
+        if (element.tagName.endsWith('DataAttribute')) tagName = 'DAType';
+        if (element.tagName.endsWith('DataObject')) tagName = 'DOType';
+        if (element.typeKind === 'ENUMERATED') tagName = 'EnumType';
+        if (element.tagName === 'LNClass') tagName = 'LNType';
+        const p = JSON.stringify(path);
+        const newType = templates.ownerDocument.createElement(tagName);
+        newType.setAttribute('path', p);
+        if (!addedPaths.has(p)) {
+          addedPaths.add(p);
+          templates.append(newType);
+        }
+      }
+    }
+  */
+
+    return templates;
+  }
+
   render(): TemplateResult {
     return html`<aside>
       <h3>Template Generator POC</h3>
         <button
-        @click=${() => {
-          const blob = new Blob([JSON.stringify(this.selection, null, '  ')], {
-            type: 'application/json',
-          });
-
-          const a = document.createElement('a');
-          a.download = 'selection.json';
-          a.href = URL.createObjectURL(blob);
-          a.dataset.downloadurl = ['application/xml', a.download, a.href].join(
-            ':'
-          );
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => {
-            URL.revokeObjectURL(a.href);
-          }, 5000);
-        }}
-      >
-        Save selection</button
+        @click=${() => console.log(this.saveSelection())}
+      >Save selection</button
       ><br>
       <button
         @click=${() => {

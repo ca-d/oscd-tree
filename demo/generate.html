@@ -23,7 +23,7 @@ if (window.confirm('serialize data?')) console.log(
         ? {
             tagName: o.element.tagName,
             dependencies: o.dependencies,
-            mandatory: o.element.getAttribute('presCond') === 'M',
+            ...Object.fromEntries(Array.from(o.element.attributes).map(attr => [attr.name, attr.value]))
           }
         : o,
     '  '

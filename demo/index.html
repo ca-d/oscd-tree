@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300&family=Roboto:wght@300;400;500&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons&display=block">
 
-<oscd-tree multi></oscd-tree>
+<oscd-tree selection='{"ARCO":{"Beh":{"q":{},"stVal":{},"t":{}},"TapChg":{"ctlModel":{},"persistent":{}},"Auto":{"ctlModel":{}}}}' multi></oscd-tree>
 
 <script type="module">
 import '../dist/oscd-tree.js';
@@ -16,14 +16,14 @@ async function read(path) {
   let dir = data;
   for (const slug of path) dir = dir[slug].dependencies;
 
-  return { path, entries: Object.keys(dir) };
+  return { path, entries: Object.keys(dir), dir };
 }
 
 function isMandatory(path) {
   let dir = data;
   for (const slug of path.slice(0,-1))
     dir = dir[slug].dependencies;
-  return dir[path[path.length - 1]].mandatory;
+  return dir[path[path.length - 1]].presCond === 'M';
 }
 
 oscdTree.read = read;
