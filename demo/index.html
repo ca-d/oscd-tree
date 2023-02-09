@@ -10,11 +10,11 @@ import '../dist/oscd-tree.js';
 const oscdTree = document.querySelector('oscd-tree');
 await oscdTree.updateComplete;
 
-const data = await fetch('/data.json').then(r => r.json());
+const data = await fetch('/tree.json').then(r => r.json());
 
 async function read(path) {
   let dir = data;
-  for (const slug of path) dir = dir[slug].dependencies;
+  for (const slug of path) dir = dir[slug].children ?? {};
 
   return { path, entries: Object.keys(dir), dir };
 }
@@ -22,7 +22,7 @@ async function read(path) {
 function isMandatory(path) {
   let dir = data;
   for (const slug of path.slice(0,-1))
-    dir = dir[slug].dependencies;
+    dir = dir[slug].children;
   return dir[path[path.length - 1]].presCond === 'M';
 }
 

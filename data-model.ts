@@ -174,10 +174,19 @@ function addDAs(dataModel: DataModel) {
     Object.values(dos).forEach(
       ({ element: dataObject, dependencies: sdos }) => {
         const cdc = dataObject.getAttribute('type');
+        const underlyingType = dataObject.getAttribute('underlyingType');
         Array.from(
           nsd73.querySelectorAll(`CDCs > CDC[name="${cdc}"] > DataAttribute`)
         ).forEach(da => {
-          sdos[da.getAttribute('name')!] = { element: da, dependencies: {} };
+          let element = da;
+          if (!da.hasAttribute('type') && underlyingType) {
+            element = da.cloneNode(true) as Element;
+            element.setAttribute('type', underlyingType);
+          }
+          sdos[da.getAttribute('name')!] = {
+            element,
+            dependencies: {},
+          };
         });
         Object.values(sdos).forEach(
           ({ element: subDataObject, dependencies: das }) => {

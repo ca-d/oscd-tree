@@ -18,14 +18,16 @@ import { data } from '../dist/data-model.js';
 if (window.confirm('serialize data?')) console.log(
   JSON.stringify(
     data,
-    (name, o) =>
-      o?.element
-        ? {
-            tagName: o.element.tagName,
-            dependencies: o.dependencies,
-            ...Object.fromEntries(Array.from(o.element.attributes).map(attr => [attr.name, attr.value]))
-          }
-        : o,
+    (name, o) => {
+      if (!o?.element) return o;
+      const newO = {
+        tagName: o.element.tagName,
+        ...Object.fromEntries(Array.from(o.element.attributes).map(attr => [attr.name, attr.value]))
+      };
+      if (o.presCond === 'M') newO.mandatory = true;
+      if (Object.keys(o.dependencies).length) newO.children = o.dependencies;
+      return newO;
+      },
     '  '
   )
 );
